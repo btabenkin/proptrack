@@ -8,6 +8,7 @@ export const propertiesApi = {
   create: (data) => api.post('/properties', data),
   update: (id, data) => api.put(`/properties/${id}`, data),
   remove: (id) => api.delete(`/properties/${id}`),
+  getRentEstimate: (id) => api.get(`/properties/${id}/rent-estimate`),
 };
 
 export const tenantsApi = {

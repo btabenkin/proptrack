@@ -14,6 +14,8 @@ export default function Properties() {
   const [form, setForm] = useState(EMPTY);
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState('');
+  const [estimate, setEstimate] = useState(null);       // { property, data }
+  const [estimating, setEstimating] = useState(null);   // property id being fetched
 
   const load = () => propertiesApi.getAll().then(r => { setProperties(r.data); setLoading(false); });
   useEffect(() => { load(); }, []);
@@ -48,6 +50,18 @@ export default function Properties() {
     load();
   };
 
+  const handleEstimate = async (p) => {
+    setEstimating(p._id);
+    try {
+      const r = await propertiesApi.getRentEstimate(p._id);
+      setEstimate({ property: p, data: r.data });
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not fetch rent estimate.');
+    } finally {
+      setEstimating(null);
+    }
+  };
+
   if (loading) return <div className="loading">Loading…</div>;
 
   return (
@@ -78,6 +92,13 @@ export default function Properties() {
                   <td>${p.purchasePrice?.toLocaleString()}</td>
                   <td><span className={`badge badge-${p.status}`}>{p.status}</span></td>
                   <td>
+                    <button
+                      className="btn btn-sm btn-estimate"
+                      onClick={() => handleEstimate(p)}
+                      disabled={estimating === p._id}
+                    >
+                      {estimating === p._id ? '…' : '💡 Rent'}
+                    </button>
                     <button className="btn btn-sm btn-secondary" onClick={() => openEdit(p)}>Edit</button>
                     <button className="btn btn-sm btn-danger" onClick={() => handleDelete(p._id)}>Delete</button>
                   </td>
@@ -88,6 +109,72 @@ export default function Properties() {
         </div>
       )}
 
+      {/* Rent Estimate Modal */}
+      {estimate && (
+        <div className="modal-overlay" onClick={() => setEstimate(null)}>
+          <div className="modal modal-wide" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h3>Rent Estimate</h3>
+                <div className="modal-subtitle">{estimate.property.address}, {estimate.property.city}, {estimate.property.state}</div>
+              </div>
+              <button className="modal-close" onClick={() => setEstimate(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              {/* Estimate summary */}
+              <div className="estimate-hero">
+                <div className="estimate-main">
+                  <div className="estimate-label">Estimated Market Rent</div>
+                  <div className="estimate-value">${estimate.data.rent?.toLocaleString()}<span>/mo</span></div>
+                </div>
+                <div className="estimate-range">
+                  <div className="estimate-range-item">
+                    <div className="estimate-range-label">Low</div>
+                    <div className="estimate-range-value">${estimate.data.rentRangeLow?.toLocaleString()}</div>
+                  </div>
+                  <div className="estimate-range-divider">—</div>
+                  <div className="estimate-range-item">
+                    <div className="estimate-range-label">High</div>
+                    <div className="estimate-range-value">${estimate.data.rentRangeHigh?.toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Comparables */}
+              {estimate.data.comparables?.length > 0 && (
+                <>
+                  <h4 className="comps-title">Nearby Comparables</h4>
+                  <div className="table-wrapper">
+                    <table className="table">
+                      <thead><tr>
+                        <th>Address</th><th>Rent/mo</th><th>Beds</th><th>Baths</th><th>Sq Ft</th><th>Distance</th>
+                      </tr></thead>
+                      <tbody>
+                        {estimate.data.comparables.map((c, i) => (
+                          <tr key={i}>
+                            <td>{c.address}</td>
+                            <td><strong>${c.rent?.toLocaleString()}</strong></td>
+                            <td>{c.bedrooms}</td>
+                            <td>{c.bathrooms}</td>
+                            <td>{c.squareFootage?.toLocaleString()}</td>
+                            <td>{c.distance?.toFixed(1)} mi</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              <div className="estimate-footer">
+                Data provided by <a href="https://www.rentcast.io" target="_blank" rel="noreferrer">Rentcast</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>

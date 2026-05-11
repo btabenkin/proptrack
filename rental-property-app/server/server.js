@@ -34,9 +34,11 @@ const tenants = require('./routes/tenants');
 const rentPayments = require('./routes/rentPayments');
 const expenses = require('./routes/expenses');
 const maintenanceRequests = require('./routes/maintenanceRequests');
+const rentEstimate = require('./routes/rentEstimate');
 
 // Mount routers
 app.use('/api/properties', properties);
+app.use('/api/properties/:id/rent-estimate', rentEstimate);
 app.use('/api/tenants', tenants);
 app.use('/api/rent-payments', rentPayments);
 app.use('/api/expenses', expenses);
